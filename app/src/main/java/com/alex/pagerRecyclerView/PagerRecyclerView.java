@@ -24,15 +24,16 @@ public class PagerRecyclerView extends RecyclerView implements View.OnTouchListe
     private int startY = 0;
     private int startX = 0;
 
-
+    private int mLeftMargin = 0;
     private int mPageWidth;
+    private int mOrientation = LinearLayout.HORIZONTAL;
+
     private boolean firstTouch = true;
 
     private ValueAnimator mAnimator = null;
 
     onPageChangeListener mOnPageChangeListener;
 
-    private int mOrientation = LinearLayout.HORIZONTAL;
     private static final int AnimationDuration = 150;
 
     public int getPageWidth() {
@@ -84,11 +85,11 @@ public class PagerRecyclerView extends RecyclerView implements View.OnTouchListe
 
     }
 
+
     @Override
     public boolean performClick() {
         return super.performClick();
     }
-
 
     OnFlingListener onFlingListener = new OnFlingListener() {
         @Override
@@ -121,7 +122,16 @@ public class PagerRecyclerView extends RecyclerView implements View.OnTouchListe
                 } else if (velocityX > 0) {
                     p++;
                 }
-                endPoint = p * mPageWidth + mPageWidth / 2 - getWidth() / 2;
+
+
+                if (p == 0) {
+                    mLeftMargin = 0;
+                }
+                if (p == 1) {
+                    RecyclerView.LayoutParams layoutParams = (RecyclerView.LayoutParams) getChildAt(0).getLayoutParams();
+                    mLeftMargin = layoutParams.leftMargin;
+                }
+                endPoint = p * mPageWidth + mPageWidth / 2 - getWidth() / 2 + mLeftMargin;
 
             }
             if (endPoint < 0) {
@@ -130,22 +140,19 @@ public class PagerRecyclerView extends RecyclerView implements View.OnTouchListe
 
             //使用动画处理滚动
             if (mAnimator == null) {
-                mAnimator = new ValueAnimator().ofInt(startPoint, endPoint);
+                mAnimator = ValueAnimator.ofInt(startPoint, endPoint);
 
                 mAnimator.setDuration(AnimationDuration);
-                mAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
-                    @Override
-                    public void onAnimationUpdate(ValueAnimator animation) {
-                        int nowPoint = (int) animation.getAnimatedValue();
+                mAnimator.addUpdateListener(animation -> {
+                    int nowPoint = (int) animation.getAnimatedValue();
 
-                        if (mOrientation == LinearLayout.VERTICAL) {
-                            int dy = nowPoint - offsetY;
-                            //这里通过RecyclerView的scrollBy方法实现滚动。
-                            scrollBy(0, dy);
-                        } else {
-                            int dx = nowPoint - offsetX;
-                            scrollBy(dx, 0);
-                        }
+                    if (mOrientation == LinearLayout.VERTICAL) {
+                        int dy = nowPoint - offsetY;
+                        //这里通过RecyclerView的scrollBy方法实现滚动。
+                        scrollBy(0, dy);
+                    } else {
+                        int dx = nowPoint - offsetX;
+                        scrollBy(dx, 0);
                     }
                 });
                 mAnimator.addListener(new AnimatorListenerAdapter() {
@@ -258,7 +265,7 @@ public class PagerRecyclerView extends RecyclerView implements View.OnTouchListe
         } else {
 
             int i = mPageWidth + getWidth() / 2;
-            if (startX > 0 && startX < i) {
+            if (startX > mLeftMargin && startX < i) {
                 p = 1;
             } else {
                 p = (startX + getWidth() / 2) / mPageWidth;
